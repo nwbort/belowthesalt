@@ -4,12 +4,15 @@ on:
   push:
   workflow_dispatch:
   schedule:
-  # Daily at 6:23 AM UTC
-  - cron: '23 6 * * *'
-  # For hourly at 42 minutes past the hour: '42 * * * *'
+  # Hourly at 23 minutes past the hour
+  - cron: '23 * * * *'
 
 permissions:
   contents: write
+
+env:
+  PRODUCT_FILE: tiny-kingdom-music.myshopify.com-products-haley-blais-below-the-salt-12-vinyl.html
+  NTFY_TOPIC: belowthesalt-restock-7e89c4cb25e3
 
 jobs:
   scrape:
@@ -17,6 +20,14 @@ jobs:
     if: ${{ !github.event.repository.is_template }}
     steps:
     - uses: actions/checkout@v4
+    - name: Capture previous stock status
+      id: prev
+      run: |
+        if [ -f "$PRODUCT_FILE" ] && grep -q '"available":true' "$PRODUCT_FILE"; then
+          echo "available=true" >> "$GITHUB_OUTPUT"
+        else
+          echo "available=false" >> "$GITHUB_OUTPUT"
+        fi
     - name: Create scrape.sh if it doesn't exist
       run: |
         if [ ! -f "scrape.sh" ]; then
@@ -54,6 +65,16 @@ jobs:
     - name: Run the scraper
       run: |
         ./scrape.sh
+    - name: Notify if back in stock
+      run: |
+        if grep -q '"available":true' "$PRODUCT_FILE" && [ "${{ steps.prev.outputs.available }}" != "true" ]; then
+          curl -s \
+            -H "Title: Back in stock!" \
+            -H "Priority: high" \
+            -H "Tags: tada" \
+            -d "Haley Blais - Below the Salt (12\" Vinyl) is back in stock: https://tiny-kingdom-music.myshopify.com/products/haley-blais-below-the-salt-12-vinyl" \
+            "https://ntfy.sh/$NTFY_TOPIC"
+        fi
     - name: Commit and push
       run: |-
         git config user.name "Automated"
