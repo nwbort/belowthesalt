@@ -1,7 +1,6 @@
 name: Scrape
 
 on:
-  # Manual runs only (automatic push/schedule triggers disabled)
   workflow_dispatch:
 
 permissions:
