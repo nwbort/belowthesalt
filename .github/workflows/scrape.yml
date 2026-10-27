@@ -1,11 +1,8 @@
 name: Scrape
 
 on:
-  push:
+  # Manual runs only (automatic push/schedule triggers disabled)
   workflow_dispatch:
-  schedule:
-  # Hourly at 23 minutes past the hour
-  - cron: '23 * * * *'
 
 permissions:
   contents: write
